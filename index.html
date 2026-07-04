@@ -1,0 +1,1522 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#ffd6e8">
+<title>Para mi amorcito 💗</title>
+<style>
+/* ============================================================
+   PARA MI AMORCITO — experiencia romántica interactiva
+   Un solo archivo. Sin dependencias externas. Funciona offline.
+   Archivos opcionales en la misma carpeta:
+   gif1.gif · finalizo.gif · tu.png · musica.mp3 · foto.mp3
+   ============================================================ */
+:root{
+  --rosa-suave:#ffd6e8;
+  --rosa:#ff8fb8;
+  --rosa-fuerte:#ff5c93;
+  --rojo-suave:#e8546f;
+  --crema:#fff5f0;
+  --lila:#e8d5ff;
+  --durazno:#ffe3d3;
+  --texto:#7a2b4a;
+  --texto-suave:#a4547a;
+  --blanco:#fffafc;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;overflow:hidden;overscroll-behavior:none}
+body{
+  font-family:'Segoe UI',system-ui,-apple-system,Roboto,sans-serif;
+  color:var(--texto);
+  background:linear-gradient(135deg,var(--rosa-suave),var(--durazno),var(--lila),var(--rosa-suave));
+  background-size:300% 300%;
+  animation:fondoVivo 16s ease-in-out infinite;
+  touch-action:manipulation;
+  user-select:none;-webkit-user-select:none;
+  position:fixed;inset:0;
+}
+@keyframes fondoVivo{
+  0%{background-position:0% 50%}
+  50%{background-position:100% 50%}
+  100%{background-position:0% 50%}
+}
+
+/* ------- canvas de partículas (corazones flotando) ------- */
+#lienzo{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:1}
+
+/* ------- estructura de escenas (modo historia) ------- */
+.escena{
+  position:fixed;inset:0;z-index:2;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:28px 22px;text-align:center;
+  opacity:0;visibility:hidden;transform:translateY(26px) scale(.98);
+  transition:opacity .7s ease,transform .7s cubic-bezier(.22,1,.36,1),visibility 0s linear .7s;
+  pointer-events:none;
+}
+.escena.activa{
+  pointer-events:auto;
+  opacity:1;visibility:visible;transform:translateY(0) scale(1);
+  transition:opacity .7s ease .15s,transform .7s cubic-bezier(.22,1,.36,1) .15s,visibility 0s;
+}
+.escena.saliendo{
+  opacity:0;transform:translateY(-30px) scale(.97);
+}
+
+/* ------- tipografía ------- */
+.mensaje{
+  font-size:clamp(1.15rem,4.6vw,1.7rem);
+  line-height:1.55;font-weight:600;
+  max-width:34ch;
+  text-shadow:0 2px 14px rgba(255,255,255,.7);
+  animation:aparecerSuave 1.1s cubic-bezier(.22,1,.36,1) both;
+}
+.pregunta{
+  font-size:clamp(1.3rem,5.4vw,2rem);
+  font-weight:700;margin-top:26px;
+  color:var(--rosa-fuerte);
+  animation:aparecerSuave 1.1s .35s cubic-bezier(.22,1,.36,1) both;
+  max-width:26ch;
+}
+.sub{
+  font-size:clamp(.95rem,3.8vw,1.15rem);
+  color:var(--texto-suave);margin-top:14px;
+  animation:aparecerSuave 1s .5s both;
+  max-width:32ch;
+}
+.notita{
+  position:absolute;bottom:calc(16px + env(safe-area-inset-bottom));
+  left:0;right:0;text-align:center;
+  font-size:.82rem;color:var(--texto-suave);opacity:.75;
+  animation:aparecerSuave 1.4s 1.2s both;
+}
+@keyframes aparecerSuave{
+  from{opacity:0;transform:translateY(18px)}
+  to{opacity:1;transform:translateY(0)}
+}
+
+/* ------- botones ------- */
+.fila-botones{
+  display:flex;gap:16px;flex-wrap:wrap;justify-content:center;
+  margin-top:34px;
+  animation:aparecerSuave 1.1s .6s both;
+}
+.boton{
+  appearance:none;border:none;cursor:pointer;
+  font-family:inherit;font-size:clamp(1rem,4vw,1.15rem);font-weight:700;
+  padding:15px 28px;border-radius:999px;
+  color:#fff;
+  background:linear-gradient(135deg,var(--rosa),var(--rosa-fuerte));
+  box-shadow:0 6px 22px rgba(255,92,147,.4),inset 0 1px 0 rgba(255,255,255,.4);
+  transition:transform .18s cubic-bezier(.34,1.56,.64,1),box-shadow .18s ease,filter .18s ease;
+  will-change:transform;
+  position:relative;overflow:hidden;
+}
+.boton::after{ /* brillo que recorre el botón */
+  content:'';position:absolute;top:0;left:-80%;width:50%;height:100%;
+  background:linear-gradient(105deg,transparent,rgba(255,255,255,.45),transparent);
+  animation:brillito 3.4s ease-in-out infinite;
+}
+@keyframes brillito{
+  0%,60%{left:-80%}
+  100%{left:130%}
+}
+.boton:active{transform:scale(.93)}
+@media(hover:hover){
+  .boton:hover{transform:translateY(-3px) scale(1.04);box-shadow:0 10px 28px rgba(255,92,147,.5)}
+}
+.boton.secundario{
+  background:linear-gradient(135deg,#fbc9d8,#f3a9c0);
+  color:#8c3b5c;
+  box-shadow:0 5px 16px rgba(240,160,190,.35);
+}
+.boton.pulso{animation:pulsito 1.8s ease-in-out infinite}
+@keyframes pulsito{
+  0%,100%{transform:scale(1)}
+  50%{transform:scale(1.05)}
+}
+
+/* botón escurridizo */
+#btnSiDejar{position:relative;z-index:5;transition:none}
+#btnSiDejar.huyendo{position:fixed;margin:0}
+
+/* ------- gifs / imágenes ------- */
+.marco-gif{
+  margin-top:26px;max-width:min(74vw,300px);
+  border-radius:22px;overflow:hidden;
+  box-shadow:0 10px 34px rgba(200,80,130,.3);
+  border:4px solid rgba(255,255,255,.75);
+  animation:entrarGif .8s cubic-bezier(.34,1.56,.64,1) both;
+  background:rgba(255,255,255,.5);
+}
+.marco-gif img{display:block;width:100%;height:auto}
+.marco-gif.oculto,.oculto{display:none!important}
+@keyframes entrarGif{
+  from{opacity:0;transform:scale(.6) rotate(-4deg)}
+  to{opacity:1;transform:scale(1) rotate(0)}
+}
+.fallback-gif{
+  font-size:clamp(3rem,14vw,5rem);padding:26px 36px;
+  animation:latido 1.2s ease-in-out infinite;
+}
+@keyframes latido{
+  0%,100%{transform:scale(1)}
+  14%{transform:scale(1.18)}
+  28%{transform:scale(1)}
+  42%{transform:scale(1.12)}
+}
+
+/* ------- escena FINALIZO (glitch dramático) ------- */
+#escenaFinal{background:rgba(20,4,10,.92);transition-duration:1.1s}
+#escenaFinal.activa{background:rgba(20,4,10,.92)}
+.glitch{
+  font-size:clamp(2.6rem,13vw,5rem);
+  font-weight:900;letter-spacing:.06em;
+  color:#ff1f4b;position:relative;
+  text-transform:uppercase;
+  animation:glitchSalto .9s steps(2,end) infinite;
+}
+.glitch::before,.glitch::after{
+  content:attr(data-texto);
+  position:absolute;inset:0;
+}
+.glitch::before{
+  color:#00e5ff;clip-path:inset(18% 0 46% 0);
+  transform:translate(-4px,-2px);
+  animation:glitchCorte1 1.4s steps(3,end) infinite;
+  opacity:.8;
+}
+.glitch::after{
+  color:#ff2bd1;clip-path:inset(56% 0 12% 0);
+  transform:translate(4px,2px);
+  animation:glitchCorte2 1.1s steps(3,end) infinite;
+  opacity:.8;
+}
+@keyframes glitchSalto{
+  0%,90%,100%{transform:translate(0)}
+  92%{transform:translate(-3px,2px) skewX(-4deg)}
+  96%{transform:translate(3px,-2px) skewX(3deg)}
+}
+@keyframes glitchCorte1{
+  0%,100%{clip-path:inset(18% 0 46% 0);transform:translate(-4px,-2px)}
+  33%{clip-path:inset(64% 0 8% 0);transform:translate(-6px,1px)}
+  66%{clip-path:inset(4% 0 78% 0);transform:translate(-2px,-3px)}
+}
+@keyframes glitchCorte2{
+  0%,100%{clip-path:inset(56% 0 12% 0);transform:translate(4px,2px)}
+  33%{clip-path:inset(10% 0 62% 0);transform:translate(6px,-1px)}
+  66%{clip-path:inset(72% 0 4% 0);transform:translate(2px,3px)}
+}
+#escenaFinal .mensaje{color:#ffc7d6;text-shadow:none}
+
+/* ------- barra de amor ------- */
+.zona-barra{
+  width:min(82vw,340px);margin-top:34px;
+  animation:aparecerSuave 1s .4s both;
+}
+.barra-fondo{
+  width:100%;height:34px;border-radius:999px;
+  background:rgba(255,255,255,.55);
+  box-shadow:inset 0 2px 8px rgba(200,90,130,.25),0 4px 16px rgba(255,140,180,.25);
+  overflow:hidden;position:relative;
+  border:2px solid rgba(255,255,255,.8);
+  transition:transform .1s;
+}
+.barra-relleno{
+  height:100%;width:0%;
+  background:linear-gradient(90deg,var(--rosa),var(--rosa-fuerte),#ff3d7f);
+  border-radius:999px;
+  box-shadow:0 0 14px rgba(255,80,140,.7);
+  transition:none;
+  position:relative;
+}
+.barra-relleno::after{
+  content:'';position:absolute;inset:0;
+  background:linear-gradient(180deg,rgba(255,255,255,.5),transparent 55%);
+  border-radius:999px;
+}
+.barra-numero{
+  margin-top:14px;font-size:clamp(1.4rem,6vw,2rem);font-weight:800;
+  color:var(--rosa-fuerte);font-variant-numeric:tabular-nums;
+}
+.barra-fondo.temblando{animation:temblor .09s linear infinite}
+@keyframes temblor{
+  0%{transform:translate(1.5px,-1px) rotate(.4deg)}
+  50%{transform:translate(-1.5px,1px) rotate(-.4deg)}
+  100%{transform:translate(1px,1.5px) rotate(.2deg)}
+}
+.barra-fondo.rota{
+  animation:romperse .6s cubic-bezier(.36,0,.66,-.56) both;
+}
+@keyframes romperse{
+  0%{transform:scale(1);opacity:1}
+  40%{transform:scale(1.15);opacity:1}
+  100%{transform:scale(1.6);opacity:0;filter:blur(4px)}
+}
+.texto-infinito{
+  font-size:clamp(1.25rem,5vw,1.7rem);font-weight:800;
+  color:var(--rosa-fuerte);max-width:30ch;line-height:1.5;
+  animation:entrarInfinito 1s cubic-bezier(.34,1.56,.64,1) both;
+  text-shadow:0 2px 18px rgba(255,255,255,.8);
+}
+@keyframes entrarInfinito{
+  from{opacity:0;transform:scale(.5)}
+  to{opacity:1;transform:scale(1)}
+}
+
+/* ------- tarjetitas de razones ------- */
+.tarjeta-razon{
+  margin-top:30px;
+  width:min(82vw,330px);
+  min-height:170px;
+  background:linear-gradient(150deg,#fffdfd,#ffeef5);
+  border-radius:24px;
+  box-shadow:0 12px 34px rgba(200,80,130,.28),inset 0 0 0 2px rgba(255,180,205,.35);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:26px 22px;gap:12px;
+  cursor:pointer;position:relative;
+  animation:aparecerSuave .9s .3s both;
+}
+.tarjeta-razon .emoji-razon{font-size:2.6rem}
+.tarjeta-razon .texto-razon{
+  font-size:clamp(1.05rem,4.4vw,1.3rem);font-weight:700;
+  line-height:1.5;color:var(--texto);
+}
+.tarjeta-razon::after{
+  content:'💌';position:absolute;top:-14px;right:-8px;font-size:1.8rem;
+  transform:rotate(14deg);
+}
+.tarjeta-razon.girando{animation:tarjetaSale .42s ease-in both}
+.tarjeta-razon.entrando{animation:tarjetaEntra .42s cubic-bezier(.34,1.56,.64,1) both}
+@keyframes tarjetaSale{
+  to{opacity:0;transform:translateX(-70vw) rotate(-14deg)}
+}
+@keyframes tarjetaEntra{
+  from{opacity:0;transform:translateX(70vw) rotate(12deg) scale(.85)}
+  to{opacity:1;transform:translateX(0) rotate(0) scale(1)}
+}
+.contador-razones{
+  margin-top:16px;font-weight:800;color:var(--texto-suave);
+  font-size:1rem;letter-spacing:.12em;
+}
+
+/* ------- quiz ------- */
+.caja-quiz{
+  margin-top:24px;width:min(86vw,350px);
+  animation:aparecerSuave .9s .3s both;
+}
+.pregunta-quiz{
+  font-size:clamp(1.1rem,4.6vw,1.35rem);font-weight:700;
+  line-height:1.5;min-height:3.2em;
+}
+.opciones-quiz{display:flex;flex-direction:column;gap:12px;margin-top:18px}
+.opcion{
+  appearance:none;cursor:pointer;font-family:inherit;
+  font-size:clamp(.98rem,4vw,1.1rem);font-weight:700;
+  padding:14px 18px;border-radius:18px;
+  border:2px solid rgba(255,140,180,.5);
+  background:rgba(255,255,255,.65);color:var(--texto);
+  transition:transform .15s cubic-bezier(.34,1.56,.64,1),background .2s,border-color .2s;
+}
+.opcion:active{transform:scale(.95)}
+.opcion.elegida{
+  background:linear-gradient(135deg,var(--rosa),var(--rosa-fuerte));
+  color:#fff;border-color:transparent;
+  animation:opcionPop .4s cubic-bezier(.34,1.56,.64,1);
+}
+@keyframes opcionPop{50%{transform:scale(1.08)}}
+.reaccion-quiz{
+  margin-top:18px;font-size:clamp(1rem,4.2vw,1.2rem);font-weight:800;
+  color:var(--rosa-fuerte);min-height:2.6em;line-height:1.45;
+  opacity:0;transition:opacity .3s;
+}
+.reaccion-quiz.visible{opacity:1}
+.sello-cal{
+  font-size:clamp(1.5rem,7vw,2.2rem);font-weight:900;color:var(--rosa-fuerte);
+  margin-top:10px;
+  animation:selloAparece .7s cubic-bezier(.34,1.56,.64,1) both;
+  text-shadow:0 3px 16px rgba(255,255,255,.8);
+}
+@keyframes selloAparece{
+  from{opacity:0;transform:scale(2.4) rotate(-14deg)}
+  to{opacity:1;transform:scale(1) rotate(-4deg)}
+}
+
+/* ------- cuponcitos ------- */
+.lista-cupones{
+  margin-top:22px;display:flex;flex-direction:column;gap:13px;
+  width:min(88vw,360px);
+  animation:aparecerSuave .9s .3s both;
+  max-height:52vh;overflow-y:auto;padding:4px;
+}
+.cupon{
+  position:relative;cursor:pointer;
+  display:flex;align-items:center;gap:12px;
+  padding:14px 104px 14px 16px;border-radius:16px;
+  background:repeating-linear-gradient(-45deg,#fff6fa,#fff6fa 12px,#ffeef5 12px,#ffeef5 24px);
+  border:2px dashed var(--rosa);
+  box-shadow:0 5px 16px rgba(230,120,160,.2);
+  transition:transform .18s cubic-bezier(.34,1.56,.64,1);
+  text-align:left;
+}
+.cupon:active{transform:scale(.96)}
+.cupon .emoji-cupon{font-size:1.9rem;flex-shrink:0}
+.cupon .texto-cupon{font-size:clamp(.92rem,3.8vw,1.05rem);font-weight:700;line-height:1.35}
+.cupon .mini-cupon{display:block;font-size:.78rem;font-weight:600;color:var(--texto-suave)}
+.cupon .sello-canje{
+  position:absolute;right:10px;top:50%;
+  transform:translateY(-50%) rotate(-14deg) scale(3);
+  font-size:.85rem;font-weight:900;letter-spacing:.08em;
+  color:#e0326e;border:2.5px solid #e0326e;border-radius:8px;
+  padding:3px 8px;opacity:0;pointer-events:none;
+  background:rgba(255,255,255,.75);
+}
+.cupon.canjeado{filter:saturate(.65);border-style:solid;border-color:#e0a4bc}
+.cupon.canjeado .sello-canje{
+  animation:sellazo .45s cubic-bezier(.36,0,.66,-.56) both;
+}
+@keyframes sellazo{
+  from{opacity:0;transform:translateY(-50%) rotate(-14deg) scale(3)}
+  60%{opacity:1;transform:translateY(-50%) rotate(-14deg) scale(.9)}
+  100%{opacity:1;transform:translateY(-50%) rotate(-14deg) scale(1)}
+}
+
+/* ------- noche de estrellas ------- */
+#escEstrella{background:linear-gradient(180deg,#241b4d 0%,#3b2566 55%,#5c2e6e 100%)}
+#escEstrella .pregunta{color:#ffd9ec;text-shadow:0 2px 20px rgba(255,150,200,.35)}
+#escEstrella .sub{color:#c9b3e8}
+.estrellita{
+  position:absolute;border-radius:50%;background:#fff;
+  animation:titilar 2.6s ease-in-out infinite;
+  pointer-events:none;
+}
+@keyframes titilar{
+  0%,100%{opacity:.25;transform:scale(.8)}
+  50%{opacity:1;transform:scale(1.25)}
+}
+.fugaz{
+  position:absolute;width:110px;height:2px;border-radius:2px;
+  background:linear-gradient(90deg,#fff,transparent);
+  transform:rotate(-32deg);
+  animation:cruzar 3.8s linear infinite;
+  opacity:0;pointer-events:none;
+}
+@keyframes cruzar{
+  0%{opacity:0;transform:translate(0,0) rotate(-32deg)}
+  6%{opacity:1}
+  22%{opacity:0;transform:translate(-46vw,30vw) rotate(-32deg)}
+  100%{opacity:0;transform:translate(-46vw,30vw) rotate(-32deg)}
+}
+#btnEstrella{
+  margin-top:30px;font-size:clamp(3.4rem,16vw,5.2rem);
+  background:none;border:none;cursor:pointer;
+  filter:drop-shadow(0 0 18px rgba(255,230,140,.8));
+  animation:estrellaLate 1.6s ease-in-out infinite;
+  transition:transform .2s;
+}
+#btnEstrella:active{transform:scale(.85)}
+@keyframes estrellaLate{
+  0%,100%{transform:scale(1) rotate(-4deg)}
+  50%{transform:scale(1.14) rotate(4deg)}
+}
+
+/* ------- cuenta regresiva ------- */
+.numero-conteo{
+  font-size:clamp(5rem,26vw,9rem);font-weight:900;
+  color:var(--rosa-fuerte);
+  text-shadow:0 6px 30px rgba(255,92,147,.45);
+  animation:conteoPop 1s cubic-bezier(.34,1.56,.64,1) both;
+}
+@keyframes conteoPop{
+  0%{opacity:0;transform:scale(1.8)}
+  25%{opacity:1;transform:scale(1)}
+  85%{opacity:1;transform:scale(.96)}
+  100%{opacity:0;transform:scale(.7)}
+}
+
+/* ------- flash de foto ------- */
+#flash{
+  position:fixed;inset:0;background:#fff;z-index:50;
+  opacity:0;pointer-events:none;
+}
+#flash.disparo{animation:flashazo .55s ease-out both}
+@keyframes flashazo{
+  0%{opacity:0}
+  8%{opacity:1}
+  100%{opacity:0}
+}
+
+/* ------- revelado de foto ------- */
+.marco-foto{
+  margin-top:28px;
+  width:min(64vw,270px);
+  border-radius:20px;
+  background:#fff;padding:12px 12px 46px;
+  box-shadow:0 14px 40px rgba(160,60,100,.35);
+  transform:rotate(-2deg);
+  position:relative;
+}
+.ventana-foto{
+  border-radius:10px;overflow:hidden;position:relative;
+  aspect-ratio:3/4;background:linear-gradient(135deg,#ffe0ec,#ffd0e0);
+}
+.ventana-foto img{width:100%;height:100%;object-fit:cover;display:block}
+.fallback-foto{
+  position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  font-size:4rem;animation:latido 1.3s ease-in-out infinite;
+}
+.cortina{
+  position:absolute;inset:0;z-index:2;
+  background:linear-gradient(160deg,#ffb3cf,#ff8fb8 45%,#f7a6c4);
+  display:flex;align-items:center;justify-content:center;
+  font-size:2.6rem;
+  transition:opacity 1.3s ease,transform 1.3s cubic-bezier(.22,1,.36,1),filter 1.3s ease;
+}
+.cortina .icono-agitar{animation:agitarIcono 1s ease-in-out infinite}
+@keyframes agitarIcono{
+  0%,100%{transform:rotate(0)}
+  20%{transform:rotate(-16deg)}
+  40%{transform:rotate(14deg)}
+  60%{transform:rotate(-10deg)}
+  80%{transform:rotate(8deg)}
+}
+.marco-foto.revelada .cortina{
+  opacity:0;transform:scale(1.25);filter:blur(10px);pointer-events:none;
+}
+.marco-foto.revelada{animation:fotoLista .9s cubic-bezier(.34,1.56,.64,1) both}
+@keyframes fotoLista{
+  0%{transform:rotate(-2deg) scale(1)}
+  45%{transform:rotate(2deg) scale(1.06)}
+  100%{transform:rotate(-2deg) scale(1)}
+}
+.pie-foto{
+  position:absolute;left:0;right:0;bottom:12px;text-align:center;
+  font-size:1rem;color:var(--texto-suave);font-weight:600;
+}
+
+/* ------- cartita de amor ------- */
+.papel-carta{
+  margin-top:20px;width:min(88vw,360px);
+  max-height:56vh;overflow-y:auto;
+  background:linear-gradient(180deg,#fffdf8,#fff4ee);
+  border-radius:6px 22px 6px 22px;
+  box-shadow:0 12px 36px rgba(170,70,110,.3),inset 0 0 0 1px rgba(230,170,190,.4);
+  padding:26px 22px;text-align:left;
+  font-family:'Segoe Script','Bradley Hand','Comic Sans MS',cursive;
+  font-size:clamp(1rem,4.2vw,1.15rem);
+  line-height:1.7;color:#8c3b5c;
+  white-space:pre-wrap;
+  animation:aparecerSuave .9s .3s both;
+  position:relative;
+}
+.papel-carta::before{
+  content:'💌';position:absolute;top:-16px;left:-8px;font-size:2rem;
+  transform:rotate(-16deg);
+}
+.cursor-carta{
+  display:inline-block;width:2px;height:1.1em;
+  background:var(--rosa-fuerte);vertical-align:text-bottom;
+  animation:parpadeo .8s steps(1) infinite;
+}
+@keyframes parpadeo{50%{opacity:0}}
+
+/* ------- gran final ------- */
+#escGranFinal .titulo-final{
+  font-size:clamp(2rem,9.5vw,3.4rem);font-weight:900;
+  color:var(--rosa-fuerte);line-height:1.25;
+  text-shadow:0 4px 26px rgba(255,255,255,.85);
+  animation:entrarInfinito 1.1s cubic-bezier(.34,1.56,.64,1) both;
+  max-width:14ch;
+}
+.anillo{
+  font-size:clamp(2.6rem,12vw,4rem);margin-top:18px;
+  animation:anilloGira 2.6s ease-in-out infinite;
+  display:inline-block;
+}
+@keyframes anilloGira{
+  0%,100%{transform:rotate(-8deg) scale(1)}
+  50%{transform:rotate(8deg) scale(1.12)}
+}
+
+/* ------- control de música minimalista ------- */
+#btnMusica{
+  position:fixed;top:calc(14px + env(safe-area-inset-top));right:14px;z-index:60;
+  width:46px;height:46px;border-radius:50%;
+  border:none;cursor:pointer;font-size:1.25rem;
+  background:rgba(255,255,255,.65);backdrop-filter:blur(8px);
+  box-shadow:0 4px 14px rgba(200,90,130,.3);
+  display:none;align-items:center;justify-content:center;
+  transition:transform .2s;
+}
+#btnMusica.visible{display:flex}
+#btnMusica:active{transform:scale(.88)}
+#btnMusica.sonando{animation:girando 4s linear infinite}
+@keyframes girando{to{transform:rotate(360deg)}}
+
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.001s!important;transition-duration:.2s!important}
+}
+</style>
+</head>
+<body>
+
+<canvas id="lienzo"></canvas>
+<div id="flash"></div>
+<button id="btnMusica" aria-label="Música">🎵</button>
+
+<!-- ══════════ ESCENA 1 · Inicio ══════════ -->
+<section class="escena activa" id="esc1">
+  <p class="mensaje">Amorcito, he estado mega cansado, pero incluso en mis sueños me pregunto qué hice en la vida para merecerte...</p>
+  <p class="pregunta">¿Me amas mi amorcito?</p>
+  <div class="fila-botones">
+    <button class="boton pulso" id="btnSiAmas">Claro que sí, papichulo</button>
+    <button class="boton secundario" id="btnNoAmas">No</button>
+  </div>
+  <p class="notita">🎧 súbele al volumen, hay sorpresita... hecho a manita para ti, con amorsh 🩷</p>
+</section>
+
+<!-- ══════════ ESCENA 1b · Respuesta triste (previa al glitch) ══════════ -->
+<section class="escena" id="escTriste">
+  <p class="mensaje">Desearía amarte mejor como lo mereces para que puedas amarme 🫂</p>
+</section>
+
+<!-- ══════════ ESCENA 1c · FINALIZO glitch ══════════ -->
+<section class="escena" id="escenaFinal">
+  <h1 class="glitch" data-texto="Finalizo">Finalizo</h1>
+  <figure class="marco-gif oculto" id="marcoGifFinal">
+    <img id="gifFinal" alt="finalizo" src="finalizo.gif">
+  </figure>
+  <p class="mensaje oculto" id="mensajeBromita">...bueno ya, no llores, era jugando 🥺 vuelve porfis</p>
+  <div class="fila-botones">
+    <button class="boton secundario oculto" id="btnReintentar">Espera... déjame intentarlo otra vez 💔</button>
+  </div>
+</section>
+
+<!-- ══════════ ESCENA 2 · Papi chulo ══════════ -->
+<section class="escena" id="esc2">
+  <p class="mensaje">Yo siempre seré tu papi chulo 🩷</p>
+  <figure class="marco-gif" id="marcoGif1">
+    <img id="gif1" alt="papi chulo" src="gif1.gif">
+  </figure>
+  <p class="sub">lo sabía, ni modo que no jsjs 😌</p>
+  <div class="fila-botones">
+    <button class="boton" id="btnSeguir1">Continuar 💌</button>
+  </div>
+</section>
+
+<!-- ══════════ ESCENA 3 · ¿Me quieres dejar? ══════════ -->
+<section class="escena" id="esc3">
+  <p class="pregunta">¿Me quieres dejar?</p>
+  <div class="fila-botones">
+    <button class="boton secundario" id="btnSiDejar">Sí papi chulo</button>
+    <button class="boton" id="btnNoDejar">No papi chulo</button>
+  </div>
+  <p class="sub oculto" id="pistaEscape">jsjs a ver, atrápalo 😏</p>
+</section>
+
+<!-- ══════════ ESCENA 4 · No te voy a dejar ══════════ -->
+<section class="escena" id="esc4">
+  <p class="mensaje">Lo sé, yo tampoco te voy a dejar mami chula 😭🙏</p>
+  <p class="sub">ni aunque me escondas los tacos, fíjate 😤💗</p>
+  <div class="fila-botones">
+    <button class="boton" id="btnSeguir2">Continuar 💗</button>
+  </div>
+</section>
+
+<!-- ══════════ ESCENA 5 · Barra de amor ══════════ -->
+<section class="escena" id="esc5">
+  <p class="pregunta" id="tituloBarra">Mami chula, toca la pantalla para saber cuánto te amo</p>
+  <div class="zona-barra">
+    <div class="barra-fondo" id="barraFondo">
+      <div class="barra-relleno" id="barraRelleno"></div>
+    </div>
+    <div class="barra-numero" id="barraNumero">0%</div>
+  </div>
+  <p class="texto-infinito oculto" id="textoInfinito">Te amo infinitamente, no cabe en una barrita de contador de amor</p>
+  <div class="fila-botones">
+    <button class="boton oculto" id="btnContinuarBarra">Continuar</button>
+  </div>
+</section>
+
+<!-- ══════════ ESCENA 5b · Razones (tarjetitas) ══════════ -->
+<section class="escena" id="escRazones">
+  <p class="pregunta">Espérate, aún no acabo 👀 te tengo que decir por qué te amo tanto</p>
+  <p class="sub" id="pistaRazones">toca la tarjetita 💌</p>
+  <div class="tarjeta-razon" id="tarjetaRazon">
+    <div class="emoji-razon" id="emojiRazon">🥰</div>
+    <div class="texto-razon" id="textoRazon">toca aquí para empezar</div>
+  </div>
+  <div class="contador-razones" id="contadorRazones"></div>
+  <div class="fila-botones">
+    <button class="boton oculto" id="btnSeguirRazones">Hay más, sígale 💘</button>
+  </div>
+</section>
+
+<!-- ══════════ ESCENA 5c · Examen sorpresa ══════════ -->
+<section class="escena" id="escQuiz">
+  <p class="pregunta" id="tituloQuiz">A ver mami chula, examen sorpresa 😌📝</p>
+  <div class="caja-quiz">
+    <p class="pregunta-quiz" id="preguntaQuiz"></p>
+    <div class="opciones-quiz" id="opcionesQuiz"></div>
+    <p class="reaccion-quiz" id="reaccionQuiz"></p>
+    <div class="sello-cal oculto" id="selloCal">💯/💯 aprobadísima 🎓</div>
+  </div>
+  <div class="fila-botones">
+    <button class="boton oculto" id="btnSeguirQuiz">Reclamar mi premio 🎁</button>
+  </div>
+</section>
+
+<!-- ══════════ ESCENA 5d · Cuponcitos de amor ══════════ -->
+<section class="escena" id="escCupones">
+  <p class="pregunta">Tu premio: cuponcitos de amor 🎟️</p>
+  <p class="sub" id="pistaCupones">tócalos todos para canjearlos (no caducan nunca, lo prometo)</p>
+  <div class="lista-cupones" id="listaCupones"></div>
+  <div class="fila-botones">
+    <button class="boton oculto" id="btnSeguirCupones">Continuar 💝</button>
+  </div>
+</section>
+
+<!-- ══════════ ESCENA 5e · Pide un deseo ══════════ -->
+<section class="escena" id="escEstrella">
+  <p class="pregunta" id="tituloEstrella">Shhh... cierra los ojitos y pide un deseo 🌠</p>
+  <p class="sub" id="subEstrella">cuando lo tengas, toca la estrella</p>
+  <button id="btnEstrella" aria-label="estrella">🌟</button>
+  <div class="fila-botones">
+    <button class="boton oculto" id="btnSeguirEstrella">Continuar 🌙</button>
+  </div>
+</section>
+
+<!-- ══════════ ESCENA 6 · Te amo muchísimo ══════════ -->
+<section class="escena" id="esc6">
+  <p class="mensaje" style="font-size:clamp(1.6rem,7vw,2.4rem)">Te amo muchísimo 💗</p>
+</section>
+
+<!-- ══════════ ESCENA 7 · Sonríe + conteo ══════════ -->
+<section class="escena" id="esc7">
+  <p class="pregunta">Sonríe mi amorcito 📸</p>
+  <p class="sub">di whiskyyyy 🧀</p>
+  <div class="numero-conteo" id="numeroConteo">5</div>
+</section>
+
+<!-- ══════════ ESCENA 8 · Revelado de foto ══════════ -->
+<section class="escena" id="esc8">
+  <p class="pregunta">Agita para descubrir tu fotito</p>
+  <div class="marco-foto" id="marcoFoto">
+    <div class="ventana-foto">
+      <div class="fallback-foto" id="fallbackFoto">🥰</div>
+      <img id="fotoTu" alt="tu fotito" src="tu.png" style="display:none">
+      <div class="cortina" id="cortina"><span class="icono-agitar">📱💞</span></div>
+    </div>
+    <div class="pie-foto">mi persona favorita 💘</div>
+  </div>
+  <p class="sub">…o tócala si tu telefonito no quiere agitarse 😌</p>
+  <div class="fila-botones">
+    <button class="boton oculto" id="btnSeguirFoto">Todavía hay más 💌</button>
+  </div>
+</section>
+
+<!-- ══════════ ESCENA 9 · Cartita ══════════ -->
+<section class="escena" id="escCarta">
+  <p class="pregunta">Te escribí una cosita...</p>
+  <div class="papel-carta" id="papelCarta"><span id="textoCarta"></span><span class="cursor-carta" id="cursorCarta"></span></div>
+  <p class="sub" id="pistaCarta">(tócala si quieres que escriba más rápido jsjs)</p>
+  <div class="fila-botones">
+    <button class="boton oculto" id="btnSeguirCarta">Snif... continuar 🥹</button>
+  </div>
+</section>
+
+<!-- ══════════ ESCENA 10 · Pregunta final ══════════ -->
+<section class="escena" id="escPregFinal">
+  <p class="sub" style="margin-top:0">última pregunta, lo prometo 🥺</p>
+  <p class="pregunta" style="font-size:clamp(1.5rem,6.4vw,2.2rem)">¿Seguimos juntos por siempre y para siempre?</p>
+  <div class="fila-botones">
+    <button class="boton pulso" id="btnPorSiempre">Sí, por siempre 💍</button>
+    <button class="boton secundario" id="btnConTacos">Sí, pero con tacos 🌮</button>
+  </div>
+</section>
+
+<!-- ══════════ ESCENA 11 · Gran final ══════════ -->
+<section class="escena" id="escGranFinal">
+  <div class="titulo-final">Por siempre tú y yo 💗</div>
+  <span class="anillo">💍</span>
+  <p class="sub" id="subFinal">trato hecho, ya no hay devoluciones 😌</p>
+  <p class="mensaje" style="margin-top:20px;font-size:clamp(1rem,4vw,1.25rem)">Fin... bueno no, esto apenas comienza 🩷<br>Gracias por existir, mi amorcito. Te amo hoy, mañana y siempre 💗∞</p>
+  <div class="fila-botones">
+    <button class="boton secundario" id="btnRevivir">Volver a vivirlo 💞</button>
+  </div>
+  <p class="notita">toca donde sea para más fueguitos artificiales ✨</p>
+</section>
+
+<audio id="musica" src="musica.mp3" loop preload="auto"></audio>
+<audio id="sonidoFoto" src="foto.mp3" preload="auto"></audio>
+
+<script>
+'use strict';
+/* ============================================================
+   LÓGICA DE LA HISTORIA
+   ============================================================ */
+const $ = id => document.getElementById(id);
+
+/* ---------- gestor de escenas (modo historia) ---------- */
+let escenaActual = $('esc1');
+function irA(idEscena, retrasoMs = 0){
+  setTimeout(() => {
+    const siguiente = $(idEscena);
+    if (!siguiente || siguiente === escenaActual) return;
+    escenaActual.classList.add('saliendo');
+    escenaActual.classList.remove('activa');
+    const anterior = escenaActual;
+    setTimeout(() => anterior.classList.remove('saliendo'), 750);
+    siguiente.classList.add('activa');
+    escenaActual = siguiente;
+  }, retrasoMs);
+}
+
+/* ---------- imágenes opcionales: si faltan, mostrar fallback bonito ---------- */
+function prepararImagen(imgId, marcoId, emoji){
+  const img = $(imgId);
+  img.addEventListener('error', () => {
+    const marco = $(marcoId);
+    marco.innerHTML = '<div class="fallback-gif">' + emoji + '</div>';
+    marco.classList.remove('oculto');
+  }, { once:true });
+}
+prepararImagen('gif1','marcoGif1','🕺🩷');
+prepararImagen('gifFinal','marcoGifFinal','💔');
+$('fotoTu').addEventListener('load', () => {
+  $('fotoTu').style.display = 'block';
+  $('fallbackFoto').style.display = 'none';
+});
+
+/* ---------- partículas: corazones flotando de fondo (canvas ligero) ---------- */
+const lienzo = $('lienzo');
+const ctx = lienzo.getContext('2d');
+let ancho = 0, alto = 0, dpr = 1;
+function ajustarLienzo(){
+  dpr = Math.min(window.devicePixelRatio || 1, 2);
+  ancho = window.innerWidth; alto = window.innerHeight;
+  lienzo.width = ancho * dpr; lienzo.height = alto * dpr;
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+}
+ajustarLienzo();
+window.addEventListener('resize', ajustarLienzo);
+
+const EMOJIS_FONDO = ['💗','💖','🩷','💞','✨','💘'];
+const PALABRITAS = ['te amo','mi vida','bonita','preciosa','mi niña','tqm','mía','siempre'];
+const flotantes = [];
+const N_FLOTANTES = 22;
+for (let i = 0; i < N_FLOTANTES; i++){
+  flotantes.push(nuevoFlotante(true));
+}
+function nuevoFlotante(inicial){
+  return {
+    x: Math.random() * ancho,
+    y: inicial ? Math.random() * alto : alto + 30,
+    vy: 0.25 + Math.random() * 0.55,
+    vx: (Math.random() - 0.5) * 0.3,
+    tam: 10 + Math.random() * 16,
+    rot: Math.random() * Math.PI * 2,
+    vrot: (Math.random() - 0.5) * 0.01,
+    alfa: 0.25 + Math.random() * 0.4,
+    em: EMOJIS_FONDO[(Math.random() * EMOJIS_FONDO.length) | 0],
+    osc: Math.random() * Math.PI * 2
+  };
+}
+/* explosión de corazones (para la barra rota, toques y fueguitos) */
+const chispas = [];
+function explotarCorazones(x, y, cantidad, conPalabra){
+  for (let i = 0; i < cantidad; i++){
+    const ang = Math.random() * Math.PI * 2;
+    const vel = 2 + Math.random() * 5.5;
+    chispas.push({
+      x, y,
+      vx: Math.cos(ang) * vel,
+      vy: Math.sin(ang) * vel - 2.5,
+      vida: 1,
+      decae: 0.012 + Math.random() * 0.014,
+      tam: 12 + Math.random() * 14,
+      em: EMOJIS_FONDO[(Math.random() * EMOJIS_FONDO.length) | 0],
+      palabra: false
+    });
+  }
+  /* de vez en cuando, una palabrita de amor flota hacia arriba */
+  if (conPalabra && Math.random() < 0.35 && chispas.length < 140){
+    chispas.push({
+      x, y: y - 10,
+      vx: (Math.random() - 0.5) * 0.8,
+      vy: -1.6 - Math.random(),
+      vida: 1, decae: 0.008,
+      tam: 15 + Math.random() * 5,
+      em: PALABRITAS[(Math.random() * PALABRITAS.length) | 0],
+      palabra: true
+    });
+  }
+}
+let tPrevio = performance.now();
+function animarParticulas(t){
+  const dt = Math.min((t - tPrevio) / 16.7, 3); // normalizado a ~60fps
+  tPrevio = t;
+  ctx.clearRect(0, 0, ancho, alto);
+
+  for (const f of flotantes){
+    f.y -= f.vy * dt;
+    f.osc += 0.015 * dt;
+    f.x += (f.vx + Math.sin(f.osc) * 0.25) * dt;
+    f.rot += f.vrot * dt;
+    if (f.y < -40){ Object.assign(f, nuevoFlotante(false)); }
+    ctx.save();
+    ctx.globalAlpha = f.alfa;
+    ctx.translate(f.x, f.y);
+    ctx.rotate(f.rot);
+    ctx.font = f.tam + 'px serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(f.em, 0, 0);
+    ctx.restore();
+  }
+  for (let i = chispas.length - 1; i >= 0; i--){
+    const c = chispas[i];
+    c.x += c.vx * dt;
+    c.y += c.vy * dt;
+    if (!c.palabra) c.vy += 0.14 * dt;    // gravedad suave (las palabras flotan)
+    c.vida -= c.decae * dt;
+    if (c.vida <= 0){ chispas.splice(i, 1); continue; }
+    ctx.save();
+    ctx.globalAlpha = Math.max(c.vida, 0);
+    if (c.palabra){
+      ctx.font = '700 ' + c.tam + 'px "Segoe Script","Comic Sans MS",cursive';
+      ctx.fillStyle = '#ff5c93';
+      ctx.shadowColor = 'rgba(255,255,255,.9)';
+      ctx.shadowBlur = 6;
+    } else {
+      ctx.font = c.tam + 'px serif';
+    }
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(c.em, c.x, c.y);
+    ctx.restore();
+  }
+  requestAnimationFrame(animarParticulas);
+}
+requestAnimationFrame(animarParticulas);
+
+/* corazoncitos (y palabritas) al tocar cualquier parte */
+document.addEventListener('pointerdown', e => {
+  explotarCorazones(e.clientX, e.clientY, 3, true);
+}, { passive:true });
+
+/* ---------- vibración suave (si existe) ---------- */
+function vibrar(patron){ if (navigator.vibrate) { try { navigator.vibrate(patron); } catch(_){} } }
+
+/* ---------- música de fondo ---------- */
+const musica = $('musica');
+const btnMusica = $('btnMusica');
+let musicaLista = false, musicaFallo = false;
+musica.volume = 0.55;
+musica.addEventListener('error', () => { musicaFallo = true; }, { once:true });
+function iniciarMusica(){
+  if (musicaLista || musicaFallo) return;
+  musica.play().then(() => {
+    musicaLista = true;
+    btnMusica.classList.add('visible','sonando');
+    btnMusica.textContent = '🎵';
+  }).catch(() => {/* el navegador la bloqueó; se reintenta en el próximo toque */});
+}
+document.addEventListener('pointerdown', iniciarMusica, { passive:true });
+btnMusica.addEventListener('click', e => {
+  e.stopPropagation();
+  if (musica.paused){
+    musica.play().catch(()=>{});
+    btnMusica.classList.add('sonando'); btnMusica.textContent = '🎵';
+  } else {
+    musica.pause();
+    btnMusica.classList.remove('sonando'); btnMusica.textContent = '🔇';
+  }
+});
+
+/* ============================================================
+   ESCENA 1 → ¿Me amas?
+   ============================================================ */
+$('btnSiAmas').addEventListener('click', () => {
+  vibrar(30);
+  explotarCorazones(innerWidth / 2, innerHeight / 2, 18, true);
+  irA('esc2', 250);
+});
+$('btnNoAmas').addEventListener('click', () => {
+  vibrar([60, 40, 60]);
+  irA('escTriste', 150);
+  irA('escenaFinal', 3600);           // transición dramática al glitch
+  setTimeout(() => {
+    $('marcoGifFinal').classList.remove('oculto');
+  }, 5300);
+  setTimeout(() => {
+    $('mensajeBromita').classList.remove('oculto');
+    $('btnReintentar').classList.remove('oculto');
+  }, 6800);
+});
+$('btnReintentar').addEventListener('click', () => {
+  vibrar(20);
+  irA('esc1', 150);
+});
+
+/* ============================================================
+   ESCENA 2 → continuar
+   ============================================================ */
+$('btnSeguir1').addEventListener('click', () => { vibrar(20); irA('esc3', 200); });
+
+/* ============================================================
+   ESCENA 3 → botón escurridizo: rebota, se teletransporta y se burla
+   ============================================================ */
+const btnSiDejar = $('btnSiDejar');
+let escapes = 0;
+const MAX_ESCAPES = 8;                 // después de esto se deja atrapar
+let fisica = null;                     // {x,y,vx,vy,escala,raf}
+const BURLAS = [
+  'jsjs no me atrapas 😝',
+  'uy, muy lenta mami chula jaja',
+  '¡fiuum! ahora estoy acá 👻',
+  'casi casiii... pero no 😏',
+  '¿ya te cansaste? yo no 🏃💨',
+  'este botoncito no se deja jsjs',
+  'okok una más y me rindo 🥵',
+  'ya ya, me dejo... tócame pues 😮‍💨'
+];
+
+function activarHuida(){
+  if (fisica) return;
+  const r = btnSiDejar.getBoundingClientRect();
+  btnSiDejar.classList.add('huyendo');
+  btnSiDejar.style.left = '0px';
+  btnSiDejar.style.top = '0px';
+  fisica = { x:r.left, y:r.top, vx:0, vy:0, escala:1, ancho:r.width, alto:r.height, raf:0 };
+  btnSiDejar.style.transform = `translate(${fisica.x}px,${fisica.y}px)`;
+  $('pistaEscape').classList.remove('oculto');
+  pasoFisica();
+}
+function pasoFisica(){
+  const f = fisica;
+  f.vy += 0.5;                          // gravedad
+  f.x += f.vx; f.y += f.vy;
+  const maxX = innerWidth - f.ancho - 8;
+  const maxY = innerHeight - f.alto - 8;
+  if (f.x < 8)    { f.x = 8;    f.vx = Math.abs(f.vx) * 0.75; }
+  if (f.x > maxX) { f.x = maxX; f.vx = -Math.abs(f.vx) * 0.75; }
+  if (f.y < 8)    { f.y = 8;    f.vy = Math.abs(f.vy) * 0.75; }
+  if (f.y > maxY) { f.y = maxY; f.vy = -Math.abs(f.vy) * 0.72; f.vx *= 0.94; }
+  if (f.escala < 1){ f.escala = Math.min(f.escala + 0.08, 1); } // pop al reaparecer
+  btnSiDejar.style.transform = `translate(${f.x}px,${f.y}px) scale(${f.escala})`;
+  f.raf = requestAnimationFrame(pasoFisica);
+}
+/* teletransporte: desaparece y reaparece en otro lugar de la pantalla */
+function teletransportar(){
+  const f = fisica;
+  f.vx = 0; f.vy = 0;
+  f.escala = 0.05;                      // reaparece creciendo (efecto pop)
+  const margen = 10;
+  const topSeguro = 80;                 // no tapar el botón de música
+  f.x = margen + Math.random() * Math.max(innerWidth - f.ancho - margen * 2, 1);
+  f.y = topSeguro + Math.random() * Math.max(innerHeight - f.alto - topSeguro - 90, 1);
+}
+function huirDe(px, py){
+  activarHuida();
+  const f = fisica;
+  escapes++;
+  vibrar(15);
+  $('pistaEscape').textContent = BURLAS[Math.min(escapes - 1, BURLAS.length - 1)];
+  if (escapes % 2 === 0){
+    teletransportar();                  // una vez rebota, otra se teletransporta
+  } else {
+    const cx = f.x + f.ancho / 2, cy = f.y + f.alto / 2;
+    let dx = cx - px, dy = cy - py;
+    const dist = Math.hypot(dx, dy) || 1;
+    const fuerza = 16 + Math.random() * 8;
+    f.vx = (dx / dist) * fuerza + (Math.random() - 0.5) * 6;
+    f.vy = (dy / dist) * fuerza - (6 + Math.random() * 6);
+  }
+}
+/* huye ANTES de que llegue el toque, mientras le queden escapes */
+btnSiDejar.addEventListener('pointerdown', e => {
+  if (escapes < MAX_ESCAPES){
+    e.preventDefault();
+    huirDe(e.clientX, e.clientY);
+  }
+});
+btnSiDejar.addEventListener('pointerenter', e => {
+  if (e.pointerType === 'mouse' && escapes < MAX_ESCAPES) huirDe(e.clientX, e.clientY);
+});
+btnSiDejar.addEventListener('click', () => {
+  if (escapes < MAX_ESCAPES) return;   // aún juguetón
+  atrapado();
+});
+function atrapado(){
+  if (fisica){ cancelAnimationFrame(fisica.raf); fisica = null; }
+  vibrar([30, 30, 60]);
+  explotarCorazones(innerWidth / 2, innerHeight / 2, 14, true);
+  irA('esc4', 200);
+}
+$('btnNoDejar').addEventListener('click', () => {
+  if (fisica){ cancelAnimationFrame(fisica.raf); fisica = null; }
+  vibrar(30);
+  explotarCorazones(innerWidth / 2, innerHeight / 2, 14, true);
+  irA('esc4', 200);
+});
+
+/* ============================================================
+   ESCENA 4 → continuar a la barra
+   ============================================================ */
+$('btnSeguir2').addEventListener('click', () => { vibrar(20); irA('esc5', 200); });
+
+/* ============================================================
+   ESCENA 5 → barra de amor con aceleración progresiva
+   ============================================================ */
+let barraIniciada = false, barraRota = false;
+$('esc5').addEventListener('pointerdown', () => {
+  if (barraIniciada) return;
+  barraIniciada = true;
+  vibrar(20);
+  llenarBarra();
+});
+function llenarBarra(){
+  const relleno = $('barraRelleno');
+  const numero = $('barraNumero');
+  const fondo = $('barraFondo');
+  let progreso = 0;
+  let velocidad = 0.12;                 // arranca lenta…
+  fondo.classList.add('temblando');
+  function paso(){
+    velocidad *= 1.045;                 // …y acelera progresivamente
+    progreso = Math.min(progreso + velocidad, 100);
+    relleno.style.width = progreso + '%';
+    numero.textContent = Math.floor(progreso) + '%';
+    if (progreso >= 60) vibrarLigero(progreso);
+    if (progreso < 100){
+      requestAnimationFrame(paso);
+    } else {
+      romperBarra();
+    }
+  }
+  requestAnimationFrame(paso);
+}
+let ultimoTic = 0;
+function vibrarLigero(p){
+  const ahora = performance.now();
+  if (ahora - ultimoTic > (140 - p)){ ultimoTic = ahora; vibrar(8); }
+}
+function romperBarra(){
+  if (barraRota) return;
+  barraRota = true;
+  const fondo = $('barraFondo');
+  fondo.classList.remove('temblando');
+  fondo.classList.add('rota');
+  vibrar([50, 40, 90]);
+  const r = fondo.getBoundingClientRect();
+  explotarCorazones(r.left + r.width / 2, r.top + r.height / 2, 34, true);
+  setTimeout(() => {
+    $('tituloBarra').classList.add('oculto');
+    fondo.parentElement.classList.add('oculto');
+    $('textoInfinito').classList.remove('oculto');
+    $('btnContinuarBarra').classList.remove('oculto');
+  }, 620);
+}
+$('btnContinuarBarra').addEventListener('click', () => {
+  vibrar(20);
+  irA('escRazones', 150);
+});
+
+/* ============================================================
+   ESCENA 5b → tarjetitas: razones por las que te amo
+   ============================================================ */
+const RAZONES = [
+  ['😂','porque te ríes de mis chistes malos (y eso ya es amor del bueno)'],
+  ['😡','porque hasta enojada te ves hermosa, no es justo'],
+  ['🫠','porque me aguantas cuando ando de intenso'],
+  ['🤗','porque tus abrazos curan todo, te lo juro'],
+  ['🌮','porque compartes tus tacos conmigo... bueno, a veces jsjs'],
+  ['🌟','porque me haces querer ser mejor cada día'],
+  ['🎶','porque tu risa es mi sonido favorito del mundo'],
+  ['🛋️','porque contigo hasta hacer nada es mi plan favorito'],
+  ['💘','porque eres tú. así, tal cual. eres tú.']
+];
+let idxRazon = -1, tarjetaOcupada = false;
+const tarjetaRazon = $('tarjetaRazon');
+tarjetaRazon.addEventListener('pointerdown', () => {
+  if (tarjetaOcupada) return;
+  if (idxRazon >= RAZONES.length - 1) return;
+  tarjetaOcupada = true;
+  vibrar(12);
+  if (idxRazon >= 0){
+    tarjetaRazon.classList.add('girando');   // la actual sale volando
+    setTimeout(mostrarSiguienteRazon, 400);
+  } else {
+    mostrarSiguienteRazon();                 // la primera entra directo
+  }
+});
+function mostrarSiguienteRazon(){
+  idxRazon++;
+  const [emoji, texto] = RAZONES[idxRazon];
+  $('emojiRazon').textContent = emoji;
+  $('textoRazon').textContent = texto;
+  $('contadorRazones').textContent = (idxRazon + 1) + ' / ' + RAZONES.length + ' 💗';
+  tarjetaRazon.classList.remove('girando');
+  tarjetaRazon.classList.add('entrando');
+  setTimeout(() => {
+    tarjetaRazon.classList.remove('entrando');
+    tarjetaOcupada = false;
+  }, 430);
+  if (idxRazon === RAZONES.length - 1){
+    $('pistaRazones').textContent = 'y me faltaron como mil 🥹';
+    explotarCorazones(innerWidth / 2, innerHeight / 2, 20, true);
+    vibrar([20, 30, 40]);
+    setTimeout(() => $('btnSeguirRazones').classList.remove('oculto'), 500);
+  }
+}
+$('btnSeguirRazones').addEventListener('click', () => { vibrar(20); irA('escQuiz', 150); });
+
+/* ============================================================
+   ESCENA 5c → examen sorpresa (todas las respuestas ganan)
+   ============================================================ */
+const PREGUNTAS = [
+  {
+    q: 'primera: ¿quién es la persona más hermosa de este mundo? 🤔',
+    ops: ['yo, obvio 💅', 'yo, sin discusión', 'la que está leyendo esto'],
+    r: '¡correcto! eras tú en las tres, no había forma de fallar 😌✅'
+  },
+  {
+    q: 'segunda: ¿cuánto te amo yo a ti? 💗',
+    ops: ['mucho', 'muchísimo', 'una barbaridad'],
+    r: 'mmm INCORRECTO ❌ ... la respuesta era «infinito», pero te la paso porque estás bonita jsjs'
+  },
+  {
+    q: 'tercera y última: ¿quién te va a amar toditita la vida? 👀',
+    ops: ['tú 🥺', 'tú y solo tú', 'mi papi chulo 😌'],
+    r: 'exactamente, mi amor 🥹💗 firmado y sellado'
+  }
+];
+let idxPregunta = 0, quizOcupado = false;
+function pintarPregunta(){
+  const p = PREGUNTAS[idxPregunta];
+  $('preguntaQuiz').textContent = p.q;
+  const cont = $('opcionesQuiz');
+  cont.innerHTML = '';
+  p.ops.forEach(op => {
+    const b = document.createElement('button');
+    b.className = 'opcion';
+    b.textContent = op;
+    b.addEventListener('click', () => responderQuiz(b));
+    cont.appendChild(b);
+  });
+  $('reaccionQuiz').classList.remove('visible');
+}
+function responderQuiz(botonElegido){
+  if (quizOcupado) return;
+  quizOcupado = true;
+  vibrar(15);
+  botonElegido.classList.add('elegida');
+  const reac = $('reaccionQuiz');
+  reac.textContent = PREGUNTAS[idxPregunta].r;
+  reac.classList.add('visible');
+  explotarCorazones(innerWidth / 2, innerHeight / 2.4, 10, true);
+  setTimeout(() => {
+    idxPregunta++;
+    quizOcupado = false;
+    if (idxPregunta < PREGUNTAS.length){
+      pintarPregunta();
+    } else {
+      terminarQuiz();
+    }
+  }, 2300);
+}
+function terminarQuiz(){
+  $('preguntaQuiz').textContent = 'resultados del examen...';
+  $('opcionesQuiz').innerHTML = '';
+  $('reaccionQuiz').classList.remove('visible');
+  setTimeout(() => {
+    $('selloCal').classList.remove('oculto');
+    vibrar([30, 40, 60]);
+    explotarCorazones(innerWidth / 2, innerHeight / 2, 26, true);
+    $('btnSeguirQuiz').classList.remove('oculto');
+  }, 900);
+}
+pintarPregunta();
+$('btnSeguirQuiz').addEventListener('click', () => { vibrar(20); irA('escCupones', 150); });
+
+/* ============================================================
+   ESCENA 5d → cuponcitos de amor canjeables
+   ============================================================ */
+const CUPONES = [
+  ['🐻','Vale por 1 abrazo de oso gigante','válido aunque estés enojada conmigo'],
+  ['💋','Vale por besitos ilimitados por un día','sin letra chiquita, lo juro'],
+  ['🌮','Vale por ir a comer lo que TÚ quieras','sí, aunque sea el lugar caro'],
+  ['🎬','Vale por un día de mimos y películas','tú eliges la peli, yo llevo las palomitas'],
+  ['🏆','Vale por dejarte ganar en TODO','*solo por hoy jsjs, no abuses'],
+  ['📵','Vale por una tarde sin celular, solo tú y yo','el mejor plan que existe']
+];
+let canjeados = 0;
+const listaCupones = $('listaCupones');
+CUPONES.forEach(([emoji, titulo, nota]) => {
+  const div = document.createElement('div');
+  div.className = 'cupon';
+  div.innerHTML =
+    '<span class="emoji-cupon">' + emoji + '</span>' +
+    '<span class="texto-cupon">' + titulo +
+    '<span class="mini-cupon">' + nota + '</span></span>' +
+    '<span class="sello-canje">💝 CANJEADO</span>';
+  div.addEventListener('pointerdown', e => {
+    if (div.classList.contains('canjeado')) return;
+    div.classList.add('canjeado');
+    canjeados++;
+    vibrar([15, 20, 30]);
+    explotarCorazones(e.clientX, e.clientY, 8, true);
+    if (canjeados === CUPONES.length){
+      $('pistaCupones').textContent = 'toditos canjeados 🥳 qué abusiva jsjs... te los debo TODOS';
+      vibrar([30, 40, 60]);
+      setTimeout(() => $('btnSeguirCupones').classList.remove('oculto'), 400);
+    }
+  });
+  listaCupones.appendChild(div);
+});
+$('btnSeguirCupones').addEventListener('click', () => { vibrar(20); irA('escEstrella', 150); });
+
+/* ============================================================
+   ESCENA 5e → noche de estrellas: pide un deseo
+   ============================================================ */
+/* estrellitas y fugaces generadas al vuelo (ligeras, solo CSS anima) */
+(function sembrarCielo(){
+  const cielo = $('escEstrella');
+  for (let i = 0; i < 26; i++){
+    const e = document.createElement('span');
+    e.className = 'estrellita';
+    const t = 1 + Math.random() * 2.2;
+    e.style.cssText =
+      'left:' + (Math.random() * 100) + '%;top:' + (Math.random() * 100) + '%;' +
+      'width:' + t + 'px;height:' + t + 'px;' +
+      'animation-delay:' + (Math.random() * 2.6) + 's;' +
+      'animation-duration:' + (1.8 + Math.random() * 2.4) + 's;';
+    cielo.appendChild(e);
+  }
+  for (let i = 0; i < 3; i++){
+    const f = document.createElement('span');
+    f.className = 'fugaz';
+    f.style.cssText =
+      'left:' + (55 + Math.random() * 40) + '%;top:' + (Math.random() * 30) + '%;' +
+      'animation-delay:' + (i * 2.4 + Math.random()) + 's;';
+    cielo.appendChild(f);
+  }
+})();
+let deseoPedido = false;
+$('btnEstrella').addEventListener('click', e => {
+  if (deseoPedido) return;
+  deseoPedido = true;
+  vibrar([20, 30, 50]);
+  const r = e.target.getBoundingClientRect();
+  explotarCorazones(r.left + r.width / 2, r.top + r.height / 2, 24, true);
+  $('tituloEstrella').textContent = 'Listo ✨ deseo enviado al universo';
+  $('subEstrella').textContent = 'ojalá tu deseo haya sido yo jsjs... porque el mío eres tú 🥹';
+  setTimeout(() => $('btnSeguirEstrella').classList.remove('oculto'), 800);
+});
+$('btnSeguirEstrella').addEventListener('click', () => {
+  vibrar(20);
+  irA('esc6', 150);      // “Te amo muchísimo 💗”
+  irA('esc7', 2600);     // “Sonríe mi amorcito” + conteo
+  setTimeout(iniciarConteo, 3400);
+});
+
+/* ============================================================
+   ESCENA 7 → conteo regresivo + flash + sonido de foto
+   ============================================================ */
+function iniciarConteo(){
+  const el = $('numeroConteo');
+  let n = 5;
+  el.textContent = n;
+  reiniciarAnim(el);
+  const intervalo = setInterval(() => {
+    n--;
+    if (n >= 1){
+      el.textContent = n;
+      reiniciarAnim(el);
+      vibrar(15);
+    } else {
+      clearInterval(intervalo);
+      dispararFoto();
+    }
+  }, 1000);
+}
+function reiniciarAnim(el){
+  el.style.animation = 'none';
+  void el.offsetWidth;   // reinicia la animación CSS
+  el.style.animation = '';
+}
+function dispararFoto(){
+  const flash = $('flash');
+  flash.classList.add('disparo');
+  vibrar([20, 30, 80]);
+  reproducirSonidoFoto();
+  setTimeout(() => flash.classList.remove('disparo'), 700);
+  irA('esc8', 750);
+  setTimeout(prepararAgitar, 1200);
+}
+/* sonido: foto.mp3, con obturador sintetizado de respaldo (WebAudio) */
+function reproducirSonidoFoto(){
+  const audio = $('sonidoFoto');
+  audio.currentTime = 0;
+  const p = audio.play();
+  if (p) p.catch(sonidoObturadorSintetico);
+  audio.addEventListener('error', sonidoObturadorSintetico, { once:true });
+}
+let obturadorHecho = false;
+function sonidoObturadorSintetico(){
+  if (obturadorHecho) return;
+  obturadorHecho = true;
+  try{
+    const ac = new (window.AudioContext || window.webkitAudioContext)();
+    const dur = 0.09;
+    const buf = ac.createBuffer(1, ac.sampleRate * dur, ac.sampleRate);
+    const datos = buf.getChannelData(0);
+    for (let i = 0; i < datos.length; i++){
+      datos[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / datos.length, 2.2);
+    }
+    const src = ac.createBufferSource();
+    const gan = ac.createGain();
+    gan.gain.value = 0.5;
+    src.buffer = buf; src.connect(gan); gan.connect(ac.destination);
+    src.start();
+  }catch(_){/* sin audio disponible */}
+}
+
+/* ============================================================
+   ESCENA 8 → agitar para revelar tu.png
+   ============================================================ */
+let revelada = false;
+function prepararAgitar(){
+  /* iOS pide permiso explícito; Android no */
+  if (typeof DeviceMotionEvent !== 'undefined' &&
+      typeof DeviceMotionEvent.requestPermission === 'function'){
+    DeviceMotionEvent.requestPermission()
+      .then(estado => { if (estado === 'granted') escucharAgitar(); })
+      .catch(()=>{});
+  } else if ('ondevicemotion' in window){
+    escucharAgitar();
+  }
+  /* respaldo 1: tocar la foto también la revela */
+  $('marcoFoto').addEventListener('pointerdown', revelarFoto);
+  /* respaldo 2: si no pasa nada en 12 s, se revela solita */
+  setTimeout(revelarFoto, 12000);
+}
+function escucharAgitar(){
+  let ultimaMag = 0;
+  const manejador = e => {
+    const a = e.accelerationIncludingGravity;
+    if (!a) return;
+    const mag = Math.hypot(a.x || 0, a.y || 0, a.z || 0);
+    const delta = Math.abs(mag - ultimaMag);
+    ultimaMag = mag;
+    if (delta > 9){
+      window.removeEventListener('devicemotion', manejador);
+      revelarFoto();
+    }
+  };
+  window.addEventListener('devicemotion', manejador);
+}
+function revelarFoto(){
+  if (revelada) return;
+  revelada = true;
+  vibrar([40, 60, 40]);
+  const marco = $('marcoFoto');
+  marco.classList.add('revelada');
+  const r = marco.getBoundingClientRect();
+  explotarCorazones(r.left + r.width / 2, r.top + r.height / 2, 26, true);
+  setTimeout(() => $('btnSeguirFoto').classList.remove('oculto'), 1400);
+}
+$('btnSeguirFoto').addEventListener('click', () => {
+  vibrar(20);
+  irA('escCarta', 150);
+  setTimeout(escribirCarta, 900);
+});
+
+/* ============================================================
+   ESCENA 9 → cartita con efecto máquina de escribir
+   ============================================================ */
+const CARTA =
+`mi mami chula:
+
+no soy bueno con las palabras bonitas, pero contigo me salen solitas, mira.
+
+gracias por aguantarme, por reírte conmigo, por ser mi calma cuando todo anda al revés.
+
+no sé qué hice para merecerte, pero prometo pasarme la vida entera intentando merecerte tantito más.
+
+te amo hoy, te amo mañana, y te voy a amar cuando estemos viejitos peleando por el control de la tele.
+
+— tu papi chulo, por siempre 🩷`;
+let cartaEscrita = false, saltarCarta = false, cartaIniciada = false;
+function escribirCarta(){
+  if (cartaIniciada) return;
+  cartaIniciada = true;
+  const destino = $('textoCarta');
+  const papel = $('papelCarta');
+  let i = 0;
+  function tic(){
+    if (cartaEscrita) return;
+    /* si tocó la carta, escribe rapidísimo */
+    const paso = saltarCarta ? 6 : 1;
+    i = Math.min(i + paso, CARTA.length);
+    destino.textContent = CARTA.slice(0, i);
+    papel.scrollTop = papel.scrollHeight;
+    if (i % 3 === 0) vibrar(3);
+    if (i < CARTA.length){
+      const ch = CARTA[i - 1];
+      const pausa = saltarCarta ? 8 : (ch === '\n' ? 260 : (ch === ',' || ch === '.') ? 190 : 34 + Math.random() * 40);
+      setTimeout(tic, pausa);
+    } else {
+      cartaEscrita = true;
+      $('cursorCarta').style.display = 'none';
+      $('pistaCarta').classList.add('oculto');
+      $('btnSeguirCarta').classList.remove('oculto');
+      explotarCorazones(innerWidth / 2, innerHeight / 2, 16, true);
+    }
+  }
+  tic();
+}
+$('papelCarta').addEventListener('pointerdown', () => { saltarCarta = true; });
+$('btnSeguirCarta').addEventListener('click', () => { vibrar(20); irA('escPregFinal', 150); });
+
+/* ============================================================
+   ESCENA 10 → pregunta final (las dos respuestas son sí jsjs)
+   ============================================================ */
+$('btnPorSiempre').addEventListener('click', () => granFinal(false));
+$('btnConTacos').addEventListener('click', () => granFinal(true));
+function granFinal(conTacos){
+  vibrar([40, 50, 80]);
+  if (conTacos){
+    $('subFinal').textContent = 'jsjs sabía que dirías eso... trato hecho: por siempre + tacos 🌮💗';
+  }
+  explotarCorazones(innerWidth / 2, innerHeight / 2, 30, true);
+  irA('escGranFinal', 250);
+  iniciarFueguitos();
+}
+
+/* ============================================================
+   ESCENA 11 → gran final con fueguitos artificiales de corazones
+   ============================================================ */
+let fueguitosTimer = null;
+function iniciarFueguitos(){
+  if (fueguitosTimer) return;
+  fueguitosTimer = setInterval(() => {
+    if (!$('escGranFinal').classList.contains('activa')) return;
+    if (chispas.length > 110) return;   // no saturar el canvas
+    explotarCorazones(
+      40 + Math.random() * (innerWidth - 80),
+      60 + Math.random() * (innerHeight * 0.55),
+      12 + (Math.random() * 8 | 0),
+      true
+    );
+  }, 900);
+}
+$('escGranFinal').addEventListener('pointerdown', e => {
+  explotarCorazones(e.clientX, e.clientY, 16, true);
+  vibrar(20);
+});
+$('btnRevivir').addEventListener('click', () => location.reload());
+</script>
+</body>
+</html>
